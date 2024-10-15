@@ -1,9 +1,48 @@
 <!DOCTYPE html>
-<html>
-  <head>...</head>
-  <body>
-    <video id="video" width="640" height="480" autoplay></video>
-    <!-- Dont for get to link your JavaScript -->
-    <script src="./main.js" async></script>
-  </body>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner PDF417</title>
+    <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+</head>
+<body>
+    <h1>Escáner de PDF417</h1>
+    <video id="video" width="300" height="200" style="border: 1px solid black;"></video>
+    <p id="result">Esperando escanear un código PDF417...</p>
+
+    <script>
+        const codeReader = new ZXing.BrowserMultiFormatReader();
+        const videoElement = document.getElementById('video');
+        const resultElement = document.getElementById('result');
+
+        // Función para iniciar la cámara y escanear
+        codeReader
+            .listVideoInputDevices()
+            .then((videoInputDevices) => {
+                // Usa la primera cámara disponible
+                const firstDeviceId = videoInputDevices[0].deviceId;
+
+                // Iniciar el escáner con la cámara seleccionada
+                codeReader.decodeFromVideoDevice(firstDeviceId, 'video', (result, err) => {
+                    if (result) {
+                        // Si se escanea con éxito, mostrar el resultado
+                        console.log(`Código escaneado: ${result.text}`);
+                        resultElement.innerText = `Código PDF417: ${result.text}`;
+                        // Detener el escaneo después de un escaneo exitoso
+                        codeReader.reset();
+                    }
+
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error(`Error de escaneo: ${err}`);
+                    }
+                });
+            })
+            .catch((err) => {
+                console.error(`Error al acceder a la cámara: ${err}`);
+                alert("No se pudo acceder a la cámara. Asegúrate de que el navegador tiene permisos.");
+            });
+    </script>
+</body>
 </html>
+
