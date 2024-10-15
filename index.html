@@ -3,91 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de QR y PDF417 con Vue.js</title>
-    <!-- CDN de Vue.js 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>Escáner de QR y PDF417 con Vanilla JS</title>
     <!-- CDN de ZXing -->
     <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
     <style>
-        .scanner {
+        body {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        video {
+            border: 1px solid black;
+            width: 300px;
+            height: 200px;
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <h1>Escáner de QR y PDF417</h1>
-        <div class="scanner">
-            <video ref="video" width="300" height="200" style="border: 1px solid black;"></video>
-            <p>{{ result }}</p>
-        </div>
-    </div>
+    <h1>Escáner de QR y PDF417</h1>
+    <video id="video" autoplay muted></video>
+    <p id="result">Esperando escanear un código...</p>
 
     <script>
-        const { createApp, ref, onMounted, onBeforeUnmount } = Vue;
+        // Inicializar el lector de códigos de barras
+        const codeReader = new ZXing.BrowserMultiFormatReader();
+        const videoElement = document.getElementById('video');
+        const resultElement = document.getElementById('result');
 
-        createApp({
-            setup() {
-                const video = ref(null);
-                const result = ref('Esperando escanear un código...');
-                let codeReader = null;
+        async function startScanner() {
+            try {
+                // Obtener los dispositivos de video disponibles
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                if (videoInputDevices.length === 0) {
+                    resultElement.textContent = 'No se encontraron dispositivos de video.';
+                    return;
+                }
 
-                onMounted(async () => {
-                    codeReader = new ZXing.BrowserMultiFormatReader();
-                    try {
-                        // Obtener dispositivos de video (cámaras)
-                        const videoInputDevices = await codeReader.listVideoInputDevices();
-                        if (videoInputDevices.length > 0) {
-                            // Intenta encontrar una cámara trasera
-                            const backCamera = videoInputDevices.find(device =>
-                                device.label.toLowerCase().includes('back') || 
-                                device.label.toLowerCase().includes('trasera') || 
-                                device.label.toLowerCase().includes('environment')
-                            );
-                            
-                            const selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
-                            
-                            // Iniciar el escáner con la cámara trasera si está disponible
-                            codeReader.decodeFromVideoDevice(
-                                selectedDeviceId,
-                                video.value,
-                                (res, err) => {
-                                    if (res) {
-                                        result.value = `Código escaneado: ${res.text}`;
-                                        // Detener el escaneo después de un escaneo exitoso
-                                        codeReader.reset();
-                                    }
+                // Buscar una cámara trasera (si está disponible)
+                const backCamera = videoInputDevices.find(device =>
+                    device.label.toLowerCase().includes('back') || 
+                    device.label.toLowerCase().includes('environment')
+                );
 
-                                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                                        console.error(`Error de escaneo: ${err}`);
-                                    }
-                                }
-                            );
-                        } else {
-                            console.error('No se encontraron dispositivos de video.');
-                            result.value = 'No se encontraron dispositivos de video.';
-                        }
-                    } catch (err) {
-                        console.error(`Error al acceder a la cámara: ${err}`);
-                        result.value = 'No se pudo acceder a la cámara. Asegúrate de que el navegador tiene permisos.';
-                    }
-                });
+                const selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
 
-                onBeforeUnmount(() => {
-                    if (codeReader) {
+                // Iniciar el escaneo de video usando la cámara seleccionada
+                codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                    if (result) {
+                        resultElement.textContent = `Código escaneado: ${result.text}`;
+                        console.log(result);
+                        // Detener el escaneo después de un escaneo exitoso
                         codeReader.reset();
                     }
-                });
 
-                return {
-                    video,
-                    result
-                };
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error(`Error de escaneo: ${err}`);
+                    }
+                });
+            } catch (err) {
+                console.error(`Error al acceder a la cámara: ${err}`);
+                resultElement.textContent = 'No se pudo acceder a la cámara. Asegúrate de que el navegador tiene permisos.';
             }
-        }).mount('#app');
+        }
+
+        // Iniciar el escáner cuando se cargue la página
+        window.addEventListener('load', startScanner);
     </script>
 </body>
 </html>
