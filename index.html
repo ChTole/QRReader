@@ -1,76 +1,58 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de QR y PDF417 con Vanilla JS</title>
-    <!-- CDN de ZXing -->
-    <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-        }
-        video {
-            border: 1px solid black;
-            width: 300px;
-            height: 200px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Escáner de QR y PDF417</h1>
-    <video id="video" autoplay muted></video>
-    <p id="result">Esperando escanear un código...</p>
+<style>
+    main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #reader {
+        width: 600px;
+    }
+    #result {
+        text-align: center;
+        font-size: 1.5rem;
+    }
+</style>
 
-    <script>
-        // Inicializar el lector de códigos de barras
-        const codeReader = new ZXing.BrowserMultiFormatReader();
-        const videoElement = document.getElementById('video');
-        const resultElement = document.getElementById('result');
+<main>
+    <div id="reader"></div>
+    <div id="result"></div>
+</main>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" integrity="sha512-r6rDA7W6ZeQhvl8S7yRVQUKVHdexq+GAlNkNNqVC7YyIV+NwqCTJe2hDWCiffTyRNOeGEzRRJ9ifvRm/HCzGYg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
 
-        async function startScanner() {
-            try {
-                // Obtener los dispositivos de video disponibles
-                const videoInputDevices = await codeReader.listVideoInputDevices();
-                if (videoInputDevices.length === 0) {
-                    resultElement.textContent = 'No se encontraron dispositivos de video.';
-                    return;
-                }
+    const scanner = new Html5QrcodeScanner('reader', { 
+        // Scanner will be initialized in DOM inside element with id of 'reader'
+        qrbox: {
+            width: 250,
+            height: 250,
+        },  // Sets dimensions of scanning box (set relative to reader element width)
+        fps: 20, // Frames per second to attempt a scan
+    });
 
-                // Buscar una cámara trasera (si está disponible)
-                const backCamera = videoInputDevices.find(device =>
-                    device.label.toLowerCase().includes('back') || 
-                    device.label.toLowerCase().includes('environment')
-                );
 
-                const selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
+    scanner.render(success, error);
+    // Starts scanner
 
-                // Iniciar el escaneo de video usando la cámara seleccionada
-                codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
-                    if (result) {
-                        resultElement.textContent = `Código escaneado: ${result.text}`;
-                        console.log(result);
-                        // Detener el escaneo después de un escaneo exitoso
-                        codeReader.reset();
-                    }
+    function success(result) {
 
-                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error(`Error de escaneo: ${err}`);
-                    }
-                });
-            } catch (err) {
-                console.error(`Error al acceder a la cámara: ${err}`);
-                resultElement.textContent = 'No se pudo acceder a la cámara. Asegúrate de que el navegador tiene permisos.';
-            }
-        }
+        document.getElementById('result').innerHTML = `
+        <h2>Success!</h2>
+        <p><a href="${result}">${result}</a></p>
+        `;
+        // Prints result as a link inside result element
 
-        // Iniciar el escáner cuando se cargue la página
-        window.addEventListener('load', startScanner);
-    </script>
-</body>
-</html>
+        scanner.clear();
+        // Clears scanning instance
+
+        document.getElementById('reader').remove();
+        // Removes reader element from DOM since no longer needed
+    
+    }
+
+    function error(err) {
+        console.error(err);
+        // Prints any errors to the console
+    }
+
+</script>
